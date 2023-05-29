@@ -11,10 +11,12 @@ using System.Text;
 using UnityEditor;
 using OfficeOpenXml;
 using UnityEngine.TextCore;
+using Unity.VisualScripting.Dependencies.NCalc;
 
 public class ReadAllExcelData : MonoBehaviour
 {
 
+    public static Action excelData;
 
     //类模板
     public static string classmoban = "using System;\r\nnamespace JsonAssets\r\n{\r\n    public class _ClassName \r\n    {\r\n      _body  \r\n    }\r\n}";
@@ -86,9 +88,10 @@ public class ReadAllExcelData : MonoBehaviour
            
             List<object> JsonData = new List<object>();
 
+
+            object scriptsObj = Program.Creat(cla.Replace("number", "int"), scriptName);
             for (int i = 3; i < rowNum; i++)
             {
-                object scriptsObj = Program.Creat(cla, scriptName);
                 Type t = scriptsObj.GetType();
                 for (int j = 0; j < columnNum; j++)
                 {
@@ -100,7 +103,7 @@ public class ReadAllExcelData : MonoBehaviour
                         case "int":
                             Debug.Log("int 类型的值  :"+ collect[i][j].ToString());
                             //赋值
-                            scriptsfield.SetValue(scriptsObj, int.Parse(collect[i][j].ToString()));
+                            scriptsfield.SetValue(scriptsObj,int.Parse(collect[i][j].ToString()));
                             break;
                         case "string":
                             //赋值
