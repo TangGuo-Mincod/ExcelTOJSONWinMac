@@ -12,6 +12,9 @@ using UnityEditor;
 using OfficeOpenXml;
 using UnityEngine.TextCore;
 using Unity.VisualScripting.Dependencies.NCalc;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
+using System.Xml.Serialization;
 
 public class ReadAllExcelData : MonoBehaviour
 {
@@ -70,28 +73,27 @@ public class ReadAllExcelData : MonoBehaviour
                 scriptBody.Append("\r\n");
                 scriptBody.Append($"    " + 
                     classspromoban.Replace("_type", 
-                    collect[2][i].ToString()=="number"?"int":collect[2][i].ToString()).
+                    collect[2][i].ToString()).
                     Replace("_name", collect[1][i].ToString()));
                 scriptBody.Append("\r\n");
                 //类型
-                //Debug.Log("类型  :"+collect[0][i].ToString());
+                Debug.Log("类型  :"+collect[0][i].ToString());
                 //属性名
-                //Debug.Log("属性名 :"+collect[1][i].ToString());
+                Debug.Log("属性名 :"+collect[1][i].ToString());
             }
 
             //类型模板
             string cla = classmoban.Replace("_ClassName", scriptName).Replace("_body", scriptBody.ToString());
 
 
-
             MainExcel.AddLog("在内存中创建excel类型：" + cla, Debuglog.finish);
            
             List<object> JsonData = new List<object>();
 
-
-            object scriptsObj = Program.Creat(cla.Replace("number", "int"), scriptName);
+           
             for (int i = 3; i < rowNum; i++)
             {
+                object scriptsObj = Program.Creat(cla.Replace("number", "int"), scriptName);
                 Type t = scriptsObj.GetType();
                 for (int j = 0; j < columnNum; j++)
                 {
@@ -99,7 +101,6 @@ public class ReadAllExcelData : MonoBehaviour
                     FieldInfo scriptsfield = t.GetField(collect[1][j].ToString());
                     switch (collect[2][j].ToString())
                     {
-                        case "number":
                         case "int":
                             Debug.Log("int 类型的值  :"+ collect[i][j].ToString());
                             //赋值
@@ -109,7 +110,22 @@ public class ReadAllExcelData : MonoBehaviour
                             //赋值
                             scriptsfield.SetValue(scriptsObj, collect[i][j].ToString());
                             break;
-                        case "number[]":
+                        case "float":
+                        case "double":
+                            //赋值
+                            scriptsfield.SetValue(scriptsObj, double.Parse(collect[i][j].ToString()));
+                            break;
+                        case "float[]":
+                        case "double[]":
+                            string[] data1 = collect[i][j].ToString().Split(",");
+                            double[] intdata1 = new double[data1.Length];
+                            for (int k = 0; k < data1.Length; k++)
+                            {
+                                intdata1[k] = double.Parse(data1[k]);
+                            }
+                            //赋值
+                            scriptsfield.SetValue(scriptsObj, intdata1);
+                            break;
                         case "int[]":
                             string[] data = collect[i][j].ToString().Split(",");
                             int[] intdata = new int[data.Length];
@@ -126,6 +142,7 @@ public class ReadAllExcelData : MonoBehaviour
                             break;
                     }
                 }
+             
                 JsonData.Add(scriptsObj);
             }
 
@@ -162,6 +179,11 @@ public class ReadAllExcelData : MonoBehaviour
         //打开文件夹
         ChinarMessage.ShellExecute(IntPtr.Zero, "open", MainExcel.jsonUrl, "", "", 1);
     }
+
+
+
+
+
 
     /// <summary>
     /// 读取excel文件内容
@@ -219,7 +241,15 @@ public class ReadAllExcelData : MonoBehaviour
                 scriptBody.Append("\r\n");
 
                 scriptBody.Append($"    " + "/**\r\n     * " + collect[0][i].ToString() + " UI\r\n     */");
-                scriptBody.Append($"    " + shuxing.Replace("_type", collect[2][i].ToString()).Replace("_name", collect[1][i].ToString()));
+
+                if (MainExcel.type == "TypeScript")
+                {
+                    scriptBody.Append($"    " + shuxing.Replace("_type", collect[2][i].ToString().Replace("int", "number").Replace("double", "number")).Replace("_name", collect[1][i].ToString()));
+                }
+                else {
+                    scriptBody.Append($"    " + shuxing.Replace("_type", collect[2][i].ToString()).Replace("_name", collect[1][i].ToString()));
+                }
+              
                 scriptBody.Append("\r\n");
             }
             //类

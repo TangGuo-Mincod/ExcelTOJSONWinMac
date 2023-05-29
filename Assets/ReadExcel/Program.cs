@@ -9,24 +9,36 @@ using System.Text;
 
 public class Program
 {
-    //在内存中编译程序集 动态创对象
-    public static object Creat(string cla,string name)
+
+    static CSharpCodeProvider objCSharpCodePrivoder;
+    static CompilerResults cr;
+    static ICodeCompiler objICodeCompiler;
+    static CompilerParameters objCompilerParameters;
+    public static void Init()
     {
         // 1.CSharpCodePrivoder 
-        CSharpCodeProvider objCSharpCodePrivoder = new CSharpCodeProvider();
-    
-        // 2.ICodeComplier 
-        ICodeCompiler objICodeCompiler = objCSharpCodePrivoder.CreateCompiler();
+        objCSharpCodePrivoder = new CSharpCodeProvider();
 
+        // 2.ICodeComplier 
+        objICodeCompiler = objCSharpCodePrivoder.CreateCompiler();
         // 3.CompilerParameters 
-        CompilerParameters objCompilerParameters = new CompilerParameters();
+        objCompilerParameters = new CompilerParameters();
         objCompilerParameters.ReferencedAssemblies.Add("System.dll");
         objCompilerParameters.GenerateExecutable = false;
         objCompilerParameters.GenerateInMemory = true;
+    }
 
+
+
+    //在内存中编译程序集 动态创对象
+    public static object Creat(string cla,string name)
+    {
+        if (cr==null)
+        {
+            Init();
+        }
         // 4.CompilerResults 
-        CompilerResults cr = objICodeCompiler.CompileAssemblyFromSource(objCompilerParameters, cla);
-   
+        cr = objICodeCompiler.CompileAssemblyFromSource(objCompilerParameters, cla);
         object objHelloWorld = null;
         if (cr.Errors.HasErrors)
         {
