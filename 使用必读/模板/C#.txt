@@ -1,0 +1,5 @@
+public class _ClassName
+{
+    _body
+}
+/public _type _name;/.cs/
