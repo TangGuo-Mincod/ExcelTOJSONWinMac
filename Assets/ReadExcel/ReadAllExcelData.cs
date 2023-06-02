@@ -15,6 +15,8 @@ using Unity.VisualScripting.Dependencies.NCalc;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Runtime.Serialization;
 using System.Xml.Serialization;
+using Unity.VisualScripting;
+using System.Security.Policy;
 
 public class ReadAllExcelData : MonoBehaviour
 {
@@ -59,11 +61,8 @@ public class ReadAllExcelData : MonoBehaviour
             //类名
             string scriptName = item.Name.Replace(MainExcel.exceltype, "");
 
-
             //创建对应类型的类文件
             CreatScriptFile(collect, columnNum, scriptName);
-
-
 
             //创建类的内容
             StringBuilder scriptBody = new StringBuilder();
@@ -86,65 +85,10 @@ public class ReadAllExcelData : MonoBehaviour
             string cla = classmoban.Replace("_ClassName", scriptName).Replace("_body", scriptBody.ToString());
 
 
-            MainExcel.AddLog("在内存中创建excel类型：" + cla, Debuglog.finish);
-           
-            List<object> JsonData = new List<object>();
-
-           
-            for (int i = 3; i < rowNum; i++)
-            {
-                object scriptsObj = Program.Creat(cla.Replace("number", "int"), scriptName);
-                Type t = scriptsObj.GetType();
-                for (int j = 0; j < columnNum; j++)
-                {
-                    //获取字段并赋值
-                    FieldInfo scriptsfield = t.GetField(collect[1][j].ToString());
-                    switch (collect[2][j].ToString())
-                    {
-                        case "int":
-                            Debug.Log("int 类型的值  :"+ collect[i][j].ToString());
-                            //赋值
-                            scriptsfield.SetValue(scriptsObj,int.Parse(collect[i][j].ToString()));
-                            break;
-                        case "string":
-                            //赋值
-                            scriptsfield.SetValue(scriptsObj, collect[i][j].ToString());
-                            break;
-                        case "float":
-                        case "double":
-                            //赋值
-                            scriptsfield.SetValue(scriptsObj, double.Parse(collect[i][j].ToString()));
-                            break;
-                        case "float[]":
-                        case "double[]":
-                            string[] data1 = collect[i][j].ToString().Split(",");
-                            double[] intdata1 = new double[data1.Length];
-                            for (int k = 0; k < data1.Length; k++)
-                            {
-                                intdata1[k] = double.Parse(data1[k]);
-                            }
-                            //赋值
-                            scriptsfield.SetValue(scriptsObj, intdata1);
-                            break;
-                        case "int[]":
-                            string[] data = collect[i][j].ToString().Split(",");
-                            int[] intdata = new int[data.Length];
-                            for (int k = 0; k < data.Length; k++)
-                            {
-                                intdata[k] = int.Parse(data[k]);
-                            }
-                            //赋值
-                            scriptsfield.SetValue(scriptsObj, intdata);
-                            break;
-                        case "string[]":
-                            //赋值
-                            scriptsfield.SetValue(scriptsObj, collect[i][j].ToString().Split(","));
-                            break;
-                    }
-                }
-             
-                JsonData.Add(scriptsObj);
-            }
+            //通过内存创建对象生成Json
+            //string jsonM = RAMToJson(rowNum,columnNum, cla, scriptName, collect);
+            //通过string生成json 
+            string jsonM = StringToJson(rowNum,columnNum,collect);
 
             DirectoryInfo di = new DirectoryInfo(MainExcel.jsonUrl + "/JsonFile/");
             if (!di.Exists)
@@ -164,8 +108,7 @@ public class ReadAllExcelData : MonoBehaviour
             {
                 jsonFile.Create().Dispose();
             }
-            string jsonM = JsonMapper.ToJson(JsonData);
-            Debug.Log(jsonM);
+   
             //修改中文乱码问题
             Regex reg = new Regex(@"(?i)\\[uU]([0-9a-f]{4})");
             string jsonMDat = reg.Replace(jsonM, delegate (Match m) { return ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString(); });
@@ -176,8 +119,15 @@ public class ReadAllExcelData : MonoBehaviour
             sw.Close();
         }
         MainExcel.AddLog("<------- 导出完成 ------->" , Debuglog.finish);
-        //打开文件夹
+
+#if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
+  
+#else
+           //打开文件夹
         ChinarMessage.ShellExecute(IntPtr.Zero, "open", MainExcel.jsonUrl, "", "", 1);
+#endif
+
+
     }
 
 
@@ -281,6 +231,149 @@ public class ReadAllExcelData : MonoBehaviour
             throw;
         }
 
+    }
+
+
+
+    /// <summary>
+    /// 创建对应的类型  并通过编译器创建类型 使用LitJson转换存储Json文件
+    /// </summary>
+    private static string RAMToJson(int rowNum,int columnNum,string cla,string scriptName, DataRowCollection collect) {
+
+        List<object> JsonData = new List<object>();
+        for (int i = 3; i < rowNum; i++)
+        {
+            object scriptsObj = Program.Creat(cla.Replace("number", "int"), scriptName);
+            Type t = scriptsObj.GetType();
+            for (int j = 0; j < columnNum; j++)
+            {
+                //获取字段并赋值
+                FieldInfo scriptsfield = t.GetField(collect[1][j].ToString());
+                switch (collect[2][j].ToString())
+                {
+                    case "int":
+                        Debug.Log("int 类型的值  :" + collect[i][j].ToString());
+                        //赋值
+                        scriptsfield.SetValue(scriptsObj, int.Parse(collect[i][j].ToString()));
+                        break;
+                    case "string":
+                        //赋值
+                        scriptsfield.SetValue(scriptsObj, collect[i][j].ToString());
+                        break;
+                    case "float":
+                    case "double":
+                        //赋值
+                        scriptsfield.SetValue(scriptsObj, double.Parse(collect[i][j].ToString()));
+                        break;
+                    case "float[]":
+                    case "double[]":
+                        string[] data1 = collect[i][j].ToString().Split(",");
+                        double[] intdata1 = new double[data1.Length];
+                        for (int k = 0; k < data1.Length; k++)
+                        {
+                            intdata1[k] = double.Parse(data1[k]);
+                        }
+                        //赋值
+                        scriptsfield.SetValue(scriptsObj, intdata1);
+                        break;
+                    case "int[]":
+                        string[] data = collect[i][j].ToString().Split(",");
+                        int[] intdata = new int[data.Length];
+                        for (int k = 0; k < data.Length; k++)
+                        {
+                            intdata[k] = int.Parse(data[k]);
+                        }
+                        //赋值
+                        scriptsfield.SetValue(scriptsObj, intdata);
+                        break;
+                    case "string[]":
+                        //赋值
+                        scriptsfield.SetValue(scriptsObj, collect[i][j].ToString().Split(","));
+                        break;
+                }
+            }
+
+            JsonData.Add(scriptsObj);
+        }
+        return JsonMapper.ToJson(JsonData);
+    }
+
+
+    /// <summary>
+    /// 直接通过表格数据生成Json文件
+    /// </summary>
+    /// <returns></returns>
+    private static string StringToJson(int rowNum, int columnNum,DataRowCollection collect) {
+        string tablebody = "";
+        for (int i = 3; i < rowNum; i++)
+        {
+            string tableObjectBody = "";
+            for (int j = 0; j < columnNum; j++)
+            {
+                //获取字段并赋值
+                string name = collect[1][j].ToString();
+                string value="";
+                switch (collect[2][j].ToString())
+                {
+                    case "int":
+                    case "double":
+                    case "float":
+                        value = collect[i][j].ToString();
+                        break;
+                    case "float[]":
+                    case "double[]":
+                    case "int[]":
+                        value = getJsonArr(collect[i][j].ToString());
+                        break;
+                    case "string":
+                        value = getString(collect[i][j].ToString());
+                        break;
+                    case "string[]":
+                        string [] strarr= collect[i][j].ToString().Split(",");
+                        string datastr="";
+                        for (int k = 0; k < strarr.Length; k++)
+                        {
+                            datastr += getString(strarr[k]);
+                            if (k!= strarr.Length-1)
+                            {
+                                datastr += ",";
+                            }
+                        }
+                        value = getJsonArr(datastr);
+                        break;
+                }
+                tableObjectBody+= getProperties(name, value);
+                if (j!= columnNum-1)
+                {
+                    tableObjectBody += ",";
+                }
+            }
+            tablebody+= getJsonObject(tableObjectBody);
+            if (i != rowNum-1)
+            {
+                tablebody += ",";
+            }
+        }
+        return getJsonArr(tablebody);
+    }
+
+
+    public static string getJsonArr(string body) { 
+        return $"[{body}]";
+    }
+
+    public static string getJsonObject(string body)
+    {
+        string kh = "{body}";
+        return kh.Replace("body", body);
+    }
+    public static string getProperties(string proname,string value) {
+        return $"\"{proname}\":{value}";
+    }
+
+    public static string getString(string value)
+    {
+        return $"\"{value}\"";
     }
 
 }

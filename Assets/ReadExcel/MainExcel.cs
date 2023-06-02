@@ -1,11 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
+
 using UnityEngine;
 using UnityEngine.UI;
 
 public class MainExcel : MonoBehaviour
 {
+
+
+#if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
+    [DllImport("OpenFinderForUnity", CharSet = CharSet.Auto)]
+    private static extern string getFilePath();
+
+#endif
+
     public static string exUrl //表格的路径
     {
         get => PlayerPrefs.GetString("MainExcelexUrl", "");
@@ -129,13 +139,22 @@ public class MainExcel : MonoBehaviour
 
         exurlButton.onClick.AddListener(() =>
         {
-            exUrl = OpenFile.OpenWinFile();
+
+#if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
+           exUrl=getFilePath();
+#else 
+           exUrl = OpenFile.OpenWinFile();
+#endif
             exurlInput.text = exUrl;
         });
 
         ExportButton.onClick.AddListener(() =>
         {
-            jsonUrl = OpenFile.OpenWinFile();
+#if UNITY_EDITOR_OSX || UNITY_STANDALONE_OSX
+            jsonUrl = getFilePath();
+#else 
+           jsonUrl = OpenFile.OpenWinFile();
+#endif
             ExportInput.text = jsonUrl;
         });
 
